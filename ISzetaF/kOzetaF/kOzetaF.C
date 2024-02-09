@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "zetaF.H"
+#include "kOzetaF.H"
 #include "addToRunTimeSelectionTable.H"
 #include "wallFvPatch.H"
 //#include "backwardsCompatibilityWallFunctions.H"
@@ -39,12 +39,12 @@ namespace RASModels
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(zetaF, 0);
-addToRunTimeSelectionTable(RASModel, zetaF, dictionary);
+defineTypeNameAndDebug(kOzetaF, 0);
+addToRunTimeSelectionTable(RASModel, kOzetaF, dictionary);
 
 // * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
 
-tmp<volScalarField> zetaF::Tau() const
+tmp<volScalarField> kOzetaF::Tau() const
 {
 /*    
     volScalarField T_lb("T_lb", CTau_*sqrt(nu()/(epsilon_+epsilonMin_)));
@@ -67,15 +67,15 @@ tmp<volScalarField> zetaF::Tau() const
     }
 */   
     return max(
-//                  min(
+                  min(
                            k_/(epsilon_+epsilonMin_),
-//                                 ( a_/((sqrt(6.0)*Cmu_*mag(symm(fvc::grad(U_))))*zeta_+mTSmall_))
-//                       ),
+                                 ( a_/((sqrt(6.0)*Cmu_*mag(symm(fvc::grad(U_))))*zeta_+mTSmall_))
+                       ),
                    CTau_*sqrt(nu()/(epsilon_+epsilonMin_))
                );
 }
 
-tmp<volScalarField> zetaF::L() const
+tmp<volScalarField> kOzetaF::L() const
 {
 /*
     volScalarField L_lb("L_lb", CEta_*pow( (pow(nu(),3)/(epsilon_+epsilonMin_)),0.25));
@@ -98,17 +98,17 @@ tmp<volScalarField> zetaF::L() const
     }
 */
     return CL_*max(
-  //                    min(
+                      min(
                               pow(k_,1.5)/(epsilon_+epsilonMin_),
-    //                            sqrt(k_)/((sqrt(6.0)*Cmu_*mag(symm(fvc::grad(U_))))*zeta_)
-   //                       ),
+                                sqrt(k_)/((sqrt(6.0)*Cmu_*mag(symm(fvc::grad(U_))))*zeta_)
+                          ),
                       CEta_*pow( (pow(nu(),3)/(epsilon_+epsilonMin_)),0.25)
                   );
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-zetaF::zetaF
+kOzetaF::kOzetaF
 (
     const volVectorField& U,
     const surfaceScalarField& phi,
@@ -171,6 +171,24 @@ zetaF::zetaF
             "sigmaEps",
             coeffDict_,
             1.3
+        )
+    ),
+    sigmaCDv_
+    (
+        dimensioned<scalar>::lookupOrAddToDict
+        (
+            "sigmaCDv",
+            coeffDict_,
+            1.4
+        )
+    ),
+    sigmaCDt_
+    (
+        dimensioned<scalar>::lookupOrAddToDict
+        (
+            "sigmaCDt",
+            coeffDict_,
+            1.5
         )
     ),
     sigmaZ_
@@ -237,6 +255,19 @@ zetaF::zetaF
         IOobject
         (
             "epsilon",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_
+    ),
+
+    omega_
+    (
+        IOobject
+        (
+            "omega",
             runTime_.timeName(),
             mesh_,
             IOobject::MUST_READ,
@@ -315,7 +346,7 @@ zetaF::zetaF
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 
-tmp<volSymmTensorField> zetaF::R() const
+tmp<volSymmTensorField> kOzetaF::R() const
 {
     return tmp<volSymmTensorField>
     (
@@ -336,7 +367,7 @@ tmp<volSymmTensorField> zetaF::R() const
 }
 
 
-tmp<volSymmTensorField> zetaF::devReff() const
+tmp<volSymmTensorField> kOzetaF::devReff() const
 {
     return tmp<volSymmTensorField>
     (
@@ -356,7 +387,7 @@ tmp<volSymmTensorField> zetaF::devReff() const
 }
 
 
-tmp<fvVectorMatrix> zetaF::divDevReff(volVectorField& U) const
+tmp<fvVectorMatrix> kOzetaF::divDevReff(volVectorField& U) const
 {
     return
     (
@@ -365,7 +396,7 @@ tmp<fvVectorMatrix> zetaF::divDevReff(volVectorField& U) const
     );
 }
 
-tmp<fvVectorMatrix> zetaF::divDevRhoReff
+tmp<fvVectorMatrix> kOzetaF::divDevRhoReff
 (
     const volScalarField& rho,
     volVectorField& U
@@ -380,7 +411,7 @@ tmp<fvVectorMatrix> zetaF::divDevRhoReff
     );
 }
 
-bool zetaF::read()
+bool kOzetaF::read()
 {
     if (RASModel::read())
     {
@@ -390,6 +421,8 @@ bool zetaF::read()
         C2_.readIfPresent(coeffDict());
         sigmaK_.readIfPresent(coeffDict());
         sigmaEps_.readIfPresent(coeffDict());
+        sigmaCDv_.readIfPresent(coeffDict());
+        sigmaCDt_.readIfPresent(coeffDict());
         sigmaZ_.readIfPresent(coeffDict());
         CTau_.readIfPresent(coeffDict());
         CL_.readIfPresent(coeffDict());
@@ -405,7 +438,7 @@ bool zetaF::read()
 }
 
 
-void zetaF::correct()
+void kOzetaF::correct()
 {
     RASModel::correct();
 
@@ -420,29 +453,36 @@ void zetaF::correct()
     volScalarField T_ = Tau();
     volScalarField L_ = L();
 
-    // Dissipation equation
-    tmp<fvScalarMatrix> epsEqn
+    volScalarField CDv("CDv", (2.0/k_*nu()/sigmaCDv_*(fvc::grad(k_)&fvc::grad(omega_)))/omega_);
+    //volScalarField CDt("CDt", (2.0/k_*nut_/1.0*max(fvc::grad(k_)&fvc::grad(omega_),dimensionedScalar("1.0e-10", dimless/pow(dimTime,3.0), 1.0e-10)))/omega_);
+    volScalarField CDt("CDt", (2.0/k_*nut_/sigmaCDt_*(fvc::grad(k_)&fvc::grad(omega_)))/omega_);
+    volScalarField CD("CD", CDv+CDt);
+
+    //volScalarField CD("CD", (2.0/k_*((nu()+nut_/sigmaEps_)*fvc::grad(k_)&fvc::grad(omega_)))/omega_);
+
+    // omega equation
+    tmp<fvScalarMatrix> omegaEqn
     (
-        fvm::ddt(epsilon_)
-      + fvm::div(phi_, epsilon_)
-      - fvm::Sp(fvc::div(phi_), epsilon_)
-      - fvm::laplacian(DepsilonEff(), epsilon_)
-     ==
-        CEps1_*G/T_
-      - fvm::Sp(CEps2_/T_, epsilon_)
-/*
-	CEps1_*G*epsilon_/k_
-      - fvm::Sp(CEps2_*epsilon_/k_, epsilon_)
-*/
+        fvm::ddt(omega_)
+      + fvm::div(phi_, omega_)
+      - fvm::laplacian(DepsilonEff(), omega_)
+      ==
+        (CEps1_-1.0)*G/k_*omega_
+      - fvm::SuSp((CEps2_-1.0)*omega_, omega_)
+      + fvm::Sp(CD, omega_)
+      //+ fvm::Sp((max(2.0/k_*DepsilonEff()*fvc::grad(k_)&fvc::grad(omega_)),dimensionedScalar("1.0e-10", dimless/sqr(dimTime), 1.0e-10))/omega_, omega_) // Cross diffusion
+      //+ fvm::Sp((2.0/k_*DepsilonEff()*fvc::grad(k_)&fvc::grad(omega_))/omega_, omega_)
+      //+ fvm::SuSp((fvc::laplacian(DepsilonEff(), k_) - fvc::laplacian(DkEff(), k_))/k_, omega_) // Zero, if sigmaEps=sigmaK
     );
-
-    epsEqn().relax();
-    //epsEqn().boundaryManipulate(epsilon_.boundaryField());
-
+    Info<<"Transformed omega equation - sigmaEps=sigmaK"<<endl;
+    omegaEqn().relax();
     dimensionedScalar nu1 = nu()->internalField()[0];
-    #include "BoundaryConditionEp.H"
+    #include "BoundaryConditionOmega.H"
+    solve(omegaEqn);
+    bound(omega_, omegaMin_);
+    //omega_.max(pol);
 
-    solve(epsEqn);
+    epsilon_ = omega_ * k_;
     bound(epsilon_, epsilonMin_);
 
 
@@ -498,8 +538,7 @@ void zetaF::correct()
 
     if(runTime_.outputTime())
     {   
-        volScalarField omega("omega", epsilon_/k_);
-        omega.write();
+        CD.write();
     }
 }
 
