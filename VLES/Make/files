@@ -1,0 +1,4 @@
+zetaF/zetaF.C
+VLES/VLES.C
+
+LIB = $(FOAM_USER_LIBBIN)/libkZetaFModel
