@@ -1,0 +1,10 @@
+zetaF/zetaF.C
+ISzetaF/ISzetaF.C
+ISzetaFkE/ISzetaFkE.C
+ISkOzF/ISkOzF.C
+kOzetaF/kOzetaF.C
+ISkOzFrough/ISkOzFrough.C
+ISkOzFT/ISkOzFT.C
+ISkOzFMinus/ISkOzFMinus.C
+
+LIB = $(FOAM_USER_LIBBIN)/libISZetaFModel
