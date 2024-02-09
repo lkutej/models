@@ -34,7 +34,7 @@ Description
 
     The default model coefficients correspond to the following:
     \verbatim
-        zetaFCoeffs
+        ISkOzFCoeffs
         {
              Cmu_         0.22,
              CEps2_       1.90,
@@ -50,12 +50,12 @@ Description
     \endverbatim
 
 SourceFiles
-    zetaF.C
+    ISkOzF.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef zetaF_H
-#define zetaF_H
+#ifndef ISkOzF_H
+#define ISkOzF_H
 
 #include "RASModel.H"
 #include "wallDistReflection.H"
@@ -69,10 +69,10 @@ namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class zetaF Declaration
+                           Class ISkOzF Declaration
 \*---------------------------------------------------------------------------*/
 
-class zetaF
+class ISkOzF
 :
     public RASModel
 {
@@ -89,20 +89,46 @@ protected:
             dimensionedScalar C2_;
             dimensionedScalar sigmaK_;
             dimensionedScalar sigmaEps_;
+            dimensionedScalar sigmaCDv_;
+            dimensionedScalar sigmaCDt_;
             dimensionedScalar sigmaZ_;
             dimensionedScalar CTau_;
             dimensionedScalar CL_;
             dimensionedScalar CEta_;
             dimensionedScalar a_;
+            dimensionedScalar TSwitch_;
+            dimensionedScalar LSwitch_;
+            dimensionedScalar Csas_;
+            dimensionedScalar CT2_;
+            dimensionedScalar Clim_;
+            dimensionedScalar fwSwitch_;
+            dimensionedScalar fEqnPbykSwitch_;
+            dimensionedScalar DavidsonSwitch_;
+            dimensionedScalar LTaylorSwitch_;
+            dimensionedScalar SdiffSwitch_;
+            dimensionedScalar CDtboundSwitch_;
+            dimensionedScalar Ceps1zetaSwitch_;
 
         // Fields
 
             volScalarField k_;
+            volScalarField kr_;
             volScalarField epsilon_;
+            volScalarField epsilonr_;
+            volScalarField omega_;
             volScalarField zeta_;
             volScalarField f_;
             volScalarField nut_;
             wallDistReflection yr_;
+            volScalarField delta_;
+            volScalarField T1_;
+            volScalarField T2_;
+
+       // averaging
+            IOdictionary VLESAveragingProperties_;
+            dimensionedScalar Dt_;
+            volVectorField UAvg_;
+
        //- Lower limit of zeta
  	    dimensionedScalar mTSmall_;
             dimensionedScalar zetaMin_;
@@ -114,18 +140,20 @@ protected:
 
             tmp<volScalarField> Tau() const;
             tmp<volScalarField> L() const;
+            void calculateDelta();
+            void writeAveragingProperties() const;
 	// Wall distance reflection
 	    
 
 public:
 
     //- Runtime type information
-    TypeName("zetaF");
+    TypeName("ISkOzF");
 
     // Constructors
 
         //- Construct from components
-        zetaF
+        ISkOzF
         (
             const volVectorField& U,
             const surfaceScalarField& phi,
@@ -136,7 +164,7 @@ public:
 
 
     //- Destructor
-    virtual ~zetaF()
+    virtual ~ISkOzF()
     {}
 
 
