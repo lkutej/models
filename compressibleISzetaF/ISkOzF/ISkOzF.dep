@@ -1,8 +1,8 @@
 $(OBJECTS_DIR)/ISkOzF.o: ISkOzF/ISkOzF.dep
 ISkOzF/ISkOzF.dep: ISkOzF/ISkOzF.C
 ISkOzF/ISkOzF.dep: ISkOzF/ISkOzF.H
-ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/turbulenceModels/incompressible/RAS/RASModel/RASModel.H
-ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/turbulenceModels/incompressible/turbulenceModel/turbulenceModel.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/turbulenceModels/compressible/RAS/RASModel/RASModel.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/turbulenceModels/compressible/turbulenceModel/turbulenceModel.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/primitiveFieldsFwd.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/fieldTypes.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/label.H
@@ -127,8 +127,8 @@ ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/triadI.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/volFieldsFwd.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/surfaceFieldsFwd.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvMatricesFwd.H
-ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/transportModels/incompressible/transportModel/transportModel.H
-ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/nearWallDist.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/thermophysicalModels/basic/lnInclude/fluidThermo.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/thermophysicalModels/basic/lnInclude/basicThermo.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/volFields.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/GeometricFields.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/GeometricScalarField.H
@@ -477,6 +477,9 @@ ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvPatchFieldNew.
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/calculatedFvPatchField.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/calculatedFvPatchField.C
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/calculatedFvPatchFields.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/wordIOList.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/thermophysicalModels/basic/lnInclude/basicThermoTemplates.C
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/nearWallDist.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/surfaceFields.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/surfaceMesh.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvsPatchFields.H
@@ -671,6 +674,11 @@ ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/meshTools/lnInclude/wallPointData.C
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/meshTools/lnInclude/wallPointDataI.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/addToRunTimeSelectionTable.H
 ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/wallFvPatch.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/mappedWallFvPatch.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/meshTools/lnInclude/mappedWallPolyPatch.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/meshTools/lnInclude/mappedPatchBase.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/meshTools/lnInclude/mappedPatchBaseI.H
+ISkOzF/ISkOzF.dep: $(WM_PROJECT_DIR)/src/meshTools/lnInclude/mappedPatchBaseTemplates.C
 ISkOzF/ISkOzF.dep: ISkOzF/BoundaryConditionOmega.H
 ISkOzF/ISkOzF.dep: ISkOzF/BoundaryConditionf.H
 $(OBJECTS_DIR)/ISkOzF.o: $(EXE_DEP)
