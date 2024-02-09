@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::incompressible::RASModels::kZetaF
+    Foam::incompressible::RASModels::VLES
 
 Description
     Zeta-effe turbulence model for incompressible flows.
@@ -34,7 +34,7 @@ Description
 
     The default model coefficients correspond to the following:
     \verbatim
-        kZetaFCoeffs
+        VLESCoeffs
         {
              Cmu_         0.22,
              Ceps2_       1.90,
@@ -50,12 +50,12 @@ Description
     \endverbatim
 
 SourceFiles
-    kZetaF.C
+    VLES.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef compressiblekZetaF_H
-#define compressiblekZetaF_H
+#ifndef compressibleVLES_H
+#define compressibleVLES_H
 
 #include "RASModel.H"
 #include "wallDistReflection.H"
@@ -69,10 +69,10 @@ namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class kZetaF Declaration
+                           Class VLES Declaration
 \*---------------------------------------------------------------------------*/
 
-class kZetaF
+class VLES
 :
     public RASModel
 {
@@ -100,11 +100,21 @@ protected:
         // Fields
 
             volScalarField k_;
+            volScalarField ksgs_;
             volScalarField epsilon_;
             volScalarField zeta_;
             volScalarField f_;
+            volScalarField fk_;
             volScalarField mut_;
             volScalarField alphat_;
+
+        // testFields
+
+            volScalarField delta_; 
+            volScalarField Lmeso_;
+            volScalarField Lkom_;
+            volScalarField Lt_;
+            volScalarField Lk_;	
 
         // wall distance reflection
 
@@ -112,24 +122,27 @@ protected:
        
         // local limiters
 
+            dimensionedScalar mTSmall_;
             dimensionedScalar zetaMin_;
             dimensionedScalar fMin_;
-            dimensionedScalar mTSmall_;
+            dimensionedScalar TscMin_;
+            dimensionedScalar LscMin_;
 
     // protected member functions
 
             tmp<volScalarField> Tau() const;
-            tmp<volScalarField> L() const;
+            tmp<volScalarField> L(); //const;
+            void calculateDelta();
     
 public:
 
     //- Runtime type information
-    TypeName("kZetaF");
+    TypeName("VLES");
 
     // Constructors
 
         //- Construct from components
-        kZetaF
+        VLES
         (
             const volScalarField& rho,
             const volVectorField& U,
@@ -141,7 +154,7 @@ public:
 
 
     //- Destructor
-    virtual ~kZetaF()
+    virtual ~VLES()
     {}
 
 
