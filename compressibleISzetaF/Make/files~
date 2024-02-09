@@ -1,0 +1,4 @@
+ISzetaF/ISzetaF.C
+ISkOzF/ISkOzF.C
+
+LIB = $(FOAM_USER_LIBBIN)/libcompressibleISzetaF
