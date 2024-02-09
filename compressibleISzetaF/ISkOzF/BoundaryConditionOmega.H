@@ -39,7 +39,7 @@
 
 				omega_[faceCelli] =
 
-				2.0*nu1.value()/sqr(yr_[faceCelli]);
+				2.0*mu()[faceCelli]/rho_[faceCelli]/sqr(yr_[faceCelli]);
 
 				// Info<< epsilon[faceCelli]<< endl;
 				}
