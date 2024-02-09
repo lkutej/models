@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "kZetaF.H"
+#include "VLES.H"
 #include "addToRunTimeSelectionTable.H"
 #include "wallFvPatch.H"
 #include "mappedWallFvPatch.H"
@@ -41,13 +41,35 @@ namespace RASModels
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-defineTypeNameAndDebug(kZetaF, 0);
-addToRunTimeSelectionTable(RASModel, kZetaF, dictionary);
+defineTypeNameAndDebug(VLES, 0);
+addToRunTimeSelectionTable(RASModel, VLES, dictionary);
 
 // * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
 
-tmp<volScalarField> kZetaF::Tau() const
+tmp<volScalarField> VLES::Tau() const
 {
+/*    
+    volScalarField T_lb("T_lb", CTau_*sqrt(nu()/(epsilon_+epsilonMin_)));
+    volScalarField T_ub("T_ub", a_/((sqrt(6.0)*Cmu_*mag(symm(fvc::grad(U_))))*zeta_+mTSmall_));
+    volScalarField T_nb("T_nb",  k_/(epsilon_+epsilonMin_));
+    
+    dimensionedScalar TSmall("TSmall", dimTime, 1e-15);
+    
+    volScalarField v_min = min(T_nb, T_ub);
+    volScalarField I_min = 1.0*pos(T_nb - T_ub - TSmall); // = 1 wenn gebounded
+    volScalarField I_max = 2.0*pos(T_lb - v_min - TSmall); // = 1 wenn gebounded
+    volScalarField TInd("TInd", I_min + I_max);
+    
+    if (runTime_.outputTime())
+    {
+        TInd.write();
+        T_lb.write();
+        T_ub.write();
+        T_nb.write();
+    }
+*/   
+/*
+    Info<<"T.Org, "; 
     return max
            (
                min
@@ -55,12 +77,51 @@ tmp<volScalarField> kZetaF::Tau() const
                    k_/(epsilon_+epsilonMin_),
                    a_/((sqrt(6.0)*Cmu_*mag(symm(fvc::grad(U_))))*zeta_+mTSmall_)    //BK: Durbin Original 1/(sqrt(6) zeta Cmu sqrt(Sij Sij)
                ),
-               CTau_*sqrt((mu()/rho_)/(epsilon_+epsilonMin_))
+               CTau_*sqrt(nu()/(epsilon_+epsilonMin_))
            ); 
+*/
+/*    
+    Info<<"T.Org without realizability constraint, ";
+    //Info<<"rho:"<<min(rho_)<<", epsilon:"<<min(epsilon_)<<endl;
+    return max
+           (
+               k_/epsilon_,
+               CTau_*sqrt((mu()/rho_)/epsilon_)
+           );
+*/
+
+    Info<<"Tau = turbulent time scale, ";
+    return k_/epsilon_;
+
+/*    
+    return max(k_/(epsilon_+epsilonMin_), sqrt(nu()/(epsilon_+epsilonMin_)));
+*/
 }
 
-tmp<volScalarField> kZetaF::L() const
+tmp<volScalarField> VLES::L() //const
 {
+/*    
+    volScalarField L_lb("L_lb", CEta_*pow( (pow(nu(),3)/(epsilon_+epsilonMin_)),0.25));
+    volScalarField L_ub("L_ub",sqrt(k_)/((sqrt(6.0)*Cmu_*mag(symm(fvc::grad(U_))))*zeta_));
+    volScalarField L_nb("L_nb",pow(k_,1.5)/(epsilon_+epsilonMin_));
+    
+    dimensionedScalar LSmall("LSmall", dimLength, 1e-15);
+    
+    volScalarField v_min = min(L_nb, L_ub);
+    volScalarField I_min = 1.0*pos(L_nb - L_ub - LSmall); // = 1 wenn gebounded
+    volScalarField I_max = 2.0*pos(L_lb - v_min - LSmall); // = 1 wenn gebounded
+    volScalarField LInd("LInd", I_min + I_max);
+    
+    if (runTime_.outputTime())
+    {
+        LInd.write();
+        L_lb.write();
+        L_ub.write();
+        L_nb.write();
+    }
+*/    
+/*
+    Info<<"L.org"<<endl;
     return CL_*max
                (
                    min                                                              //BK: in Samules Version auskommentiert
@@ -68,13 +129,147 @@ tmp<volScalarField> kZetaF::L() const
                        pow(k_,1.5)/(epsilon_+epsilonMin_),
                        sqrt(k_)/((sqrt(6.0)*Cmu_*mag(symm(fvc::grad(U_))))*zeta_)   //BK: in Samules Version auskommentiert
                    ),                                                               //BK: in Samules Version auskommentiert
-                   CEta_*pow( (pow((mu()/rho_),3)/(epsilon_+epsilonMin_)),0.25)
+                   CEta_*pow( (pow(nu(),3)/(epsilon_+epsilonMin_)),0.25)
                );
+*/
+
+    //Info<<min(rho_)<<endl;
+    //Lt_ = CL_ * pow(k_,1.5)/epsilon_;
+    //Lk_ = CL_ * CEta_ * pow((pow((mu()/rho_),3)/epsilon_),0.25);
+       
+    Info<<"L.org without realizability constraint"<<endl;
+    return CL_*max
+               (
+                   pow(k_,1.5)/epsilon_,
+                   CEta_*pow((pow((mu()/rho_),3)/epsilon_),0.25)
+               );   
+
+/*	       
+    return CL_*max(pow(k_,1.5)/(epsilon_+epsilonMin_), pow((pow(nu(),3)/(epsilon_+epsilonMin_)),0.25));
+*/
 }
 
+void VLES::calculateDelta()
+{
+    /*
+    // ~~~~~~~~~~~~~~~~~~~~~~~ max(dx,dy,dz) ~~~~~~~~~~~~~~~~~~~~~~~ //
+  
+    Info<<"delta=max(dx,dy,dz)"<<endl;
+
+    tmp<volScalarField> hmax
+    (
+        new volScalarField
+        (
+            IOobject
+            (
+                "hmax",
+                mesh_.time().timeName(),
+                mesh_,
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            mesh_,
+            dimensionedScalar("zrero", dimLength, 0.0)
+        )
+    );
+
+    const cellList& cells = mesh_.cells();
+    const vectorField& cellC = mesh_.cellCentres();
+    const vectorField& faceC = mesh_.faceCentres();
+    const vectorField faceN(mesh_.faceAreas()/mag(mesh_.faceAreas()));
+
+    forAll(cells, cellI)
+    {
+        scalar deltaMaxTmp = 0.0;
+        const labelList& cFaces = cells[cellI];
+        const point& cc = cellC[cellI];
+
+        forAll(cFaces, cFaceI)
+        {
+            label faceI = cFaces[cFaceI];
+            const point& fc = faceC[faceI];
+            const vector& n = faceN[faceI];
+
+            scalar tmp = magSqr(n*(n & (fc - cc)));
+            if (tmp > deltaMaxTmp)
+            {
+                deltaMaxTmp = tmp;
+            }
+        }
+
+        hmax()[cellI] = 2.0 * sqrt(deltaMaxTmp);
+    }
+
+    delta_.internalField() = hmax();
+    
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+    */
+    
+    
+    
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ mean  ~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+    /* 
+    Info<<"delta = 1/3*(dx+dy+dz)"<<endl;
+    
+    tmp<volScalarField> hsum
+    (
+        new volScalarField
+        (
+            IOobject
+            (
+                "hsum",
+                mesh_.time().timeName(),
+                mesh_,
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            mesh_,
+            dimensionedScalar("zrero", dimLength, 0.0)
+        )
+    );
+
+    const cellList& cells = mesh_.cells();
+    const vectorField& cellC = mesh_.cellCentres();
+    const vectorField& faceC = mesh_.faceCentres();
+    const vectorField faceN(mesh_.faceAreas()/mag(mesh_.faceAreas()));
+
+    forAll(cells, cellI)
+    {
+        const labelList& cFaces = cells[cellI];
+        const point& cc = cellC[cellI];
+
+        int ii=0;
+        forAll(cFaces, cFaceI)
+        {
+            label faceI = cFaces[cFaceI];
+            const point& fc = faceC[faceI];
+            const vector& n = faceN[faceI];
+
+            scalar tmp = magSqr(n*(n & (fc - cc)));
+            hsum()[cellI] += sqrt(tmp);
+            ii++;
+        }
+	Info<<ii<<endl;
+    }
+
+    delta_.internalField() = 1.0/3.0 * hsum();
+    */
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+    
+    
+    
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~ cube root ~~~~~~~~~~~~~~~~~~~~~~~~~ //
+    
+    Info<<"delta = mesh.V^(1/3)"<<endl;
+    delta_.internalField() = pow(mesh_.V(), 1.0/3.0);
+    
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+    
+}
+	
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-kZetaF::kZetaF
+VLES::VLES
 (
     const volScalarField& rho,
     const volVectorField& U,
@@ -218,6 +413,20 @@ kZetaF::kZetaF
         mesh_
     ),
 
+    ksgs_
+    (
+        IOobject
+        (
+            "ksgs",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("ksgs", dimensionSet(0, 2, -2, 0, 0, 0, 0), 1.0e-10)
+    ),
+
     epsilon_
     (
         IOobject
@@ -257,6 +466,19 @@ kZetaF::kZetaF
         mesh_
     ),
     
+    fk_
+    (
+        IOobject
+        (
+            "fk",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_, 0.1
+    ),
+    
     mut_
     (
         IOobject
@@ -282,31 +504,103 @@ kZetaF::kZetaF
         ),
         mesh_
     ),
+    
+    delta_
+    (
+        IOobject
+        (
+            "delta",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_, 
+        dimensionedScalar("delta", dimLength, 1.0e-10)
+    ),
 
+    Lmeso_
+    (
+        IOobject
+        (
+            "Lmeso",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        pow(k_, 1.5)/epsilon_
+    ),
+
+    Lkom_
+    (
+        IOobject
+        (
+            "Lkom",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        CEta_*pow( (pow(mu()/rho_,3)/epsilon_),0.25)
+    ),
+
+    Lt_
+    (  
+        IOobject
+        (  
+            "Lt",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("LtInitial", dimLength, 0.0)
+    ),
+
+    Lk_
+    (  
+        IOobject
+        (  
+            "Lk",
+            runTime_.timeName(),
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("LkInitial", dimLength, 0.0)
+    ),
+   
     yr_(mesh_),
     
+    mTSmall_("mTSmall", dimless/dimTime, SMALL),
     zetaMin_("zetaMin", dimless, SMALL),
     fMin_("fMin", dimless/dimTime, SMALL),
-    mTSmall_("mTSmall", dimless/dimTime, SMALL)
+    TscMin_("TscMin", dimTime, SMALL),
+    LscMin_("LscMin", dimLength, SMALL)
 {
     bound(k_, kMin_);
     bound(epsilon_, epsilonMin_);
     bound(f_, fMin_);
     bound(zeta_, zetaMin_);
     
-    alphat_ = mut_/Prt_;
-    alphat_.correctBoundaryConditions();
+    //alphat_ = mut_/Prt_;
+    //alphat_.correctBoundaryConditions();
     
-    mut_ = rho_*Cmu_*zeta_*k_*Tau();
-    mut_.correctBoundaryConditions();
+    //mut_ = rho_*Cmu_*zeta_*sqr(fk_)*k_*Tau();
+    //mut_.correctBoundaryConditions();
     
+    calculateDelta();    
+
     printCoeffs();
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 
-tmp<volSymmTensorField> kZetaF::R() const
+tmp<volSymmTensorField> VLES::R() const
 {
     return tmp<volSymmTensorField>
     (
@@ -320,14 +614,14 @@ tmp<volSymmTensorField> kZetaF::R() const
                 IOobject::NO_READ,
                 IOobject::NO_WRITE
             ),
-            ((2.0/3.0)*I)*k_ - (mut_/rho_) * twoSymm(fvc::grad(U_)), //BK: Scheint korrekt
+            ((2.0/3.0)*I)*ksgs_ - (mut_/rho_) * twoSymm(fvc::grad(U_)), //BK: Scheint korrekt
             k_.boundaryField().types()
         )
     );
 }
 
 
-tmp<volSymmTensorField> kZetaF::devRhoReff() const
+tmp<volSymmTensorField> VLES::devRhoReff() const
 {
     return tmp<volSymmTensorField>
     (
@@ -347,7 +641,7 @@ tmp<volSymmTensorField> kZetaF::devRhoReff() const
 }
 
 
-tmp<fvVectorMatrix> kZetaF::divDevRhoReff(volVectorField& U) const
+tmp<fvVectorMatrix> VLES::divDevRhoReff(volVectorField& U) const
 {
     return
     (
@@ -356,7 +650,7 @@ tmp<fvVectorMatrix> kZetaF::divDevRhoReff(volVectorField& U) const
     ); //BK: Scheint korrekt
 }
 
-bool kZetaF::read()
+bool VLES::read()
 {
     if (RASModel::read())
     {
@@ -381,7 +675,7 @@ bool kZetaF::read()
 }
 
 
-void kZetaF::correct()
+void VLES::correct()
 {
     RASModel::correct();
 
@@ -402,10 +696,11 @@ void kZetaF::correct()
     const volScalarField G(GName(), mut_*S2);
     //volScalarField G("RASModel::G", mut_*2*magSqr(symm(fvc::grad(U_)))); //BK: symm(gradU) oder dev(symm(gradU))???
     
-    volScalarField Ceps1_ = 1.4*(1.0+(0.012/zeta_));
+    //volScalarField Ceps1_ = 1.4*(1.0+(0.012/zeta_));
+    volScalarField Ceps1_ = 1.4*(1.0+0.045/sqrt(zeta_)); //BK: Änderung zum Original
     
-    volScalarField T_ = Tau();
-    volScalarField L_ = L();
+    volScalarField T_ = Tau() + TscMin_;
+    volScalarField L_ = L() + LscMin_;
     
 
     // Update epsilon (and possibly G) at the wall
@@ -493,9 +788,28 @@ void kZetaF::correct()
     solve(zetaEqn);
     bound(zeta_, zetaMin_);
     zeta_ = min(zeta_, 2.0); //BK: Warum maximal 1.5?
+
+    
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ VLES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+    
+    if (mesh_.changing())
+    {
+	calculateDelta();
+    };
+
+    Lmeso_ = pow(k_, 1.5)/epsilon_ + LscMin_; Info<<"modified Lmeso"<<endl;
+    Lkom_ = CEta_ * pow((pow((mu()/rho_),3)/epsilon_), 0.25) + LscMin_;
+    
+    fk_ = max(min(pow(delta_/Lmeso_, 2.0/3.0), 1.0), 1.0e-5);
+    volScalarField Fr_ = sqr(fk_);
+    
+    ksgs_ = fk_*k_; 
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+    
     
     // Re-calculate viscosity
-    mut_ = rho_*Cmu_*zeta_*k_*T_; //BK: Dichte
+    mut_ = rho_*Cmu_*zeta_*k_*T_*Fr_; //BK: Dichte
     //mut_.correctBoundaryConditions();
 
     alphat_ = mut_/Prt_;
