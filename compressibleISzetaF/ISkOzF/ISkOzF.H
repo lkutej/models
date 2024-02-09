@@ -37,7 +37,7 @@ Description
         ISkOzFCoeffs
         {
              Cmu_         0.22,
-             CEps2_       1.90,
+             Ceps2_       1.90,
              C1_          0.40,
              C2_          0.65,
              sigmaK_      1.00,
@@ -54,8 +54,8 @@ SourceFiles
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef ISkOzF_H
-#define ISkOzF_H
+#ifndef compressibleISkOzF_H
+#define compressibleISkOzF_H
 
 #include "RASModel.H"
 #include "wallDistReflection.H"
@@ -63,7 +63,7 @@ SourceFiles
 
 namespace Foam
 {
-namespace incompressible
+namespace compressible
 {
 namespace RASModels
 {
@@ -84,7 +84,8 @@ protected:
         // Model coefficients
 
             dimensionedScalar Cmu_;
-            dimensionedScalar CEps2_;
+            dimensionedScalar Ceps2_;
+            dimensionedScalar Ceps3_;
             dimensionedScalar C1_;
             dimensionedScalar C2_;
             dimensionedScalar sigmaK_;
@@ -104,47 +105,50 @@ protected:
             dimensionedScalar fwSwitch_;
             dimensionedScalar fEqnPbykSwitch_;
             dimensionedScalar DavidsonSwitch_;
-            dimensionedScalar LTaylorSwitch_;
+            dimensionedScalar LTypeSwitch_;
             dimensionedScalar SdiffSwitch_;
             dimensionedScalar CDtboundSwitch_;
             dimensionedScalar Ceps1zetaSwitch_;
+            dimensionedScalar Prt_;
+
 
         // Fields
 
             volScalarField k_;
-            volScalarField kr_;
+            //volScalarField kr_;
             volScalarField epsilon_;
-            volScalarField epsilonr_;
+            //volScalarField epsilonr_;
             volScalarField omega_;
             volScalarField zeta_;
             volScalarField f_;
-            volScalarField nut_;
+            volScalarField mut_;
+            volScalarField alphat_;
             wallDistReflection yr_;
             volScalarField delta_;
             volScalarField T1_;
             volScalarField T2_;
 
+
        // averaging
-            IOdictionary VLESAveragingProperties_;
-            dimensionedScalar Dt_;
-            volVectorField UAvg_;
+       
+            //IOdictionary VLESAveragingProperties_;
+            //dimensionedScalar Dt_;
+            //volVectorField UAvg_;
 
-       //- Lower limit of zeta
- 	    dimensionedScalar mTSmall_;
+       
+        // local limiters
+
             dimensionedScalar zetaMin_;
-
-       //- Lower limit of f
             dimensionedScalar fMin_;
+            
 
-       // Private member functions
+    // protected member functions
 
             tmp<volScalarField> Tau() const;
             tmp<volScalarField> L() const;
             void calculateDelta();
             void writeAveragingProperties() const;
-	// Wall distance reflection
-	    
-
+    
 public:
 
     //- Runtime type information
@@ -155,9 +159,10 @@ public:
         //- Construct from components
         ISkOzF
         (
+            const volScalarField& rho,
             const volVectorField& U,
             const surfaceScalarField& phi,
-            transportModel& transport,
+            const fluidThermo& thermophysicalModel,
             const word& turbulenceModelName = turbulenceModel::typeName,
             const word& modelName = typeName
         );
@@ -169,13 +174,7 @@ public:
 
 
     // Member Functions
-
-        //- Return the turbulence viscosity
-        virtual tmp<volScalarField> nut() const
-        {
-            return nut_;
-        }
-
+     
         //- Return the lower allowable limit for zeta (default: SMALL)
         const dimensionedScalar& zetaMin() const
         {
@@ -205,7 +204,7 @@ public:
         {
             return tmp<volScalarField>
             (
-                new volScalarField("DkEff", nut_/sigmaK_ + nu())
+                new volScalarField("DkEff", mut_/sigmaK_ + mu())
             );
         }
 
@@ -214,7 +213,7 @@ public:
         {
             return tmp<volScalarField>
             (
-                new volScalarField("DepsilonEff", nut_/sigmaEps_ + nu())
+                new volScalarField("DepsilonEff", mut_/sigmaEps_ + mu())
             );
         }
 
@@ -223,10 +222,22 @@ public:
         {
             return tmp<volScalarField>
             (
-                new volScalarField("DzetaEff", nut_/sigmaZ_ + nu())
+                new volScalarField("DzetaEff", mut_/sigmaZ_ + mu())
             );
         }
+        
+        //- Return the turbulence viscosity
+        virtual tmp<volScalarField> mut() const
+        {
+            return mut_;
+        }
 
+        //- Return the turbulence thermal diffusivity
+        virtual tmp<volScalarField> alphat() const
+        {
+            return alphat_;
+        }
+        
         //- Return the turbulence kinetic energy
         virtual tmp<volScalarField> k() const
         {
@@ -253,18 +264,11 @@ public:
         //- Return the Reynolds stress tensor
         virtual tmp<volSymmTensorField> R() const;
 
+        //- Return the source term for the momentum equation
+        virtual tmp<fvVectorMatrix> divDevRhoReff(volVectorField& U) const;
+
         //- Return the effective stress tensor including the laminar stress
-        virtual tmp<volSymmTensorField> devReff() const;
-
-        //- Return the source term for the momentum equation
-        virtual tmp<fvVectorMatrix> divDevReff(volVectorField& U) const;
-
-        //- Return the source term for the momentum equation
-        virtual tmp<fvVectorMatrix> divDevRhoReff
-        (
-            const volScalarField& rho,
-            volVectorField& U
-        ) const;
+        virtual tmp<volSymmTensorField> devRhoReff() const;
 
         //- Solve the turbulence equations and correct the turbulence viscosity
         virtual void correct();
@@ -277,7 +281,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace RASModels
-} // End namespace incompressible
+} // End namespace compressible
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
